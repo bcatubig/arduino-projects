@@ -102,30 +102,38 @@ int16_t packetnum = 0;
 
 void loop()
 {
+  display.clearDisplay();
+
+  float current_temp, temp_f, current_pressure, current_altitude;
+  current_temp = bmp.readTemperature();         // Returns temp in Celsius
+  temp_f = current_temp * 1.8 + 32;             // Murica'
+  current_pressure = bmp.readPressure();        // I bought the wrong sensor so ya'll get pressure
+  current_altitude = bmp.readAltitude(1013.25); /* Adjusted to local forecast! */
 
   display.print(F("Temp: "));
-  display.print(bmp.readTemperature());
+  display.print(temp_f);
   display.print(" ");
   display.print((char)247);
-  display.println("C");
+  display.println("F");
 
   display.print(F("Pressure: "));
-  display.print(bmp.readPressure());
+  display.print(current_pressure);
   display.println(" Pa");
 
   display.print(F("Alt: "));
-  display.print(bmp.readAltitude(1013.25)); /* Adjusted to local forecast! */
+  display.print(current_altitude);
   display.println(" m");
 
-  char radiopacket[20] = "Hello World #      ";
-  itoa(packetnum++, radiopacket + 13, 10);
-  radiopacket[19] = 0;
+  /*
+  LoRA THings
+  */
+  uint8_t data[20];
+  data[0] = (uint8_t)temp_f;
 
-  delay(10);
-  rf95.send((uint8_t *)radiopacket, 20);
+  rf95.send(data, sizeof(data));
 
-  delay(10);
   rf95.waitPacketSent();
+  packetnum++;
 
   display.print("LoRa: Sent ");
   display.print(packetnum);
@@ -134,7 +142,7 @@ void loop()
   display.setCursor(0, 0);
   display.display();
 
-  delay(1000);
+  // Sleep 10 seconds
+  delay(10000);
   yield();
-  display.clearDisplay();
 }

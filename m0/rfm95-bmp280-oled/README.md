@@ -6,8 +6,7 @@
 - [Adafruit Featherwing OLED](https://www.adafruit.com/product/2900)
 - BMP280 (Generic eBay)
 
-
 ## What it do
 
-- [*] Check ambient temp, pressure, and altitude
-- [ ] Send temp via Lora
+- [x] Check ambient temp, pressure, and altitude
+- [x] Send temp via Lora
