@@ -6,6 +6,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <RH_RF95.h>
+#include <avr/dtostrf.h>
 
 // for feather m0
 #define RFM95_CS 8
@@ -127,12 +128,23 @@ void loop()
   /*
   LoRA THings
   */
-  uint8_t data[20];
-  data[0] = (uint8_t)temp_f;
 
-  rf95.send(data, sizeof(data));
+  char loraPacket[20];
 
-  rf95.waitPacketSent();
+  // Convert float to char *
+  dtostrf(temp_f, 4, 3, loraPacket);
+
+  // SEND IT
+  rf95.send((uint8_t *)loraPacket, sizeof(loraPacket));
+
+  // Wait
+  if (!rf95.waitPacketSent())
+  {
+    Serial.println("failed to send lora packet");
+    while (1)
+      ;
+  }
+  Serial.println("YEET. Packet sent.");
   packetnum++;
 
   display.print("LoRa: Sent ");
