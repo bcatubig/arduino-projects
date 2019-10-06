@@ -2,31 +2,39 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Arduino.h>
+#include <FreeRTOS_SAMD21.h>
 #include <RH_RF95.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <avr/dtostrf.h>
 
-#if CONFIG_FREERTOS_UNICORE
-#define ARDUINO_RUNNING_CORE 0
-#else
-#define ARDUINO_RUNNING_CORE 1
-#endif
+#define ERROR_LED_PIN 13
+#define ERROR_LED_LIGHTUP_STATE HIGH
 
+// ***************************************************************************
+// FreeRTOS Tasks
+// ***************************************************************************
+TaskHandle_t Handle_helloWorldTask;
+TaskHandle_t Handle_goodNightWorldTask;
+
+// ***************************************************************************
 // Setup 1306 Display
+// ***************************************************************************
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &Wire);
 Adafruit_BMP280 bmp;
 
+// ***************************************************************************
 // LoRa Settings
-// m0 pins
+// The following pins are for the m0 express
+// ***************************************************************************
 #define RFM95_CS 8
 #define RFM95_RST 4
 #define RFM95_INT 3
+#define RF95_FREQ 915.0  // USA Frequency
 
-// Set to US frequency
-#define RF95_FREQ 915.0
-
+// ***************************************************************************
 // Singleton instance of the radio driver
+// ***************************************************************************
 RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 bool init_display() {
@@ -84,11 +92,37 @@ void read_weather_sensor() {
       bmp.readAltitude(1013.25); /* Adjusted to local forecast! */
 }
 
+//  Handle_helloWorldTask;
+//  Handle_goodNightWorldTask;
+
+static void helloWorld(void *pvParameters) {
+  Serial.println("Hello World: Started");
+  while (1) {
+    Serial.println("Hello, World!");
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
+}
+
+static void goodNightWorld(void *pvParameters) {
+  Serial.println("Hello World: Started");
+  while (1) {
+    Serial.println("Goodnight, World!");
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
-  while (!Serial) {
-    delay(1);
-  }
+  vNopDelayMS(1000);
+  while (!Serial)
+    ;
+
+  Serial.println("");
+  Serial.println("********************");
+  Serial.println("feather m0 LoRa");
+  Serial.println("********************");
+
+  vSetErrorLed(ERROR_LED_PIN, ERROR_LED_LIGHTUP_STATE);
 
   if (!init_bmp()) {
     Serial.println("Failed to initalize BMP Sensor");
@@ -101,6 +135,17 @@ void setup() {
     while (1)
       ;
   }
+
+  xTaskCreate(helloWorld, "helloWorld", 256, NULL, tskIDLE_PRIORITY + 2,
+              &Handle_helloWorldTask);
+  xTaskCreate(goodNightWorld, "goodNightWorld", 256, NULL, tskIDLE_PRIORITY + 3,
+              &Handle_goodNightWorldTask);
+
+  // Start the scheduler
+  vTaskStartScheduler();
 }
 
-void loop() {}
+void loop() {
+  Serial.print(".");
+  vNopDelayMS(100);
+}
